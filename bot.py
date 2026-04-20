@@ -14,8 +14,8 @@ def get_kfupm_data():
         return None
     
     today = datetime.now().date()
-    term_start = datetime(2026, 1, 11).date() # بداية الدراسية
-    term_end   = datetime(2026, 5, 21).date() # نهاية رصد الدرجات
+    term_start = datetime(2026, 1, 11).date() 
+    term_end   = datetime(2026, 5, 21).date() 
     
     # 1. حسبة الأيام والنسبة
     total_days = (today - term_start).days
@@ -60,9 +60,15 @@ async def main():
     p, passed, total, remain, week, event = data
     bar = "▓" * int(p/5) + "░" * (20 - int(p/5))
     
-    msg = f"[{bar}]{p}%\n\n{passed}/{total} days passed ✅\n{remain}  days left  ⏳\nWeek {week}/18  📆"
+    # التعديل هنا: إضافة مسافات (\n\n) بين كل سطر لتصبح الرسالة مريحة للعين
+    msg = f"[{bar}]{p}%\n\n"
+    msg += f"{passed}/{total} days passed ✅\n\n"
+    msg += f"{remain} days left ⏳\n\n"
+    msg += f"Week {week}/18 📆"
+    
     if event:
         msg += f"\n\nToday: {event} 💡"
+        
     msg += "\n\n#KFUPM"
 
     bot = Bot(token=TOKEN)

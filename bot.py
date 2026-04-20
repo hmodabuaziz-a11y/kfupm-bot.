@@ -64,6 +64,7 @@ async def main():
     msg = f"[{bar}]{p}%\n\n"
     msg += f"{remain} days left ⏳\n\n"
     msg += f"Week {week}/18 📆"
+    
     msg += f"{passed}/{total} days passed ✅\n\n"
     
     if event:

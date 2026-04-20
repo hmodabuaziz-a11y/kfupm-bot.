@@ -62,9 +62,9 @@ async def main():
     
     # التعديل هنا: إضافة مسافات (\n\n) بين كل سطر لتصبح الرسالة مريحة للعين
     msg = f"[{bar}]{p}%\n\n"
-    msg += f"{passed}/{total} days passed ✅\n\n"
     msg += f"{remain} days left ⏳\n\n"
     msg += f"Week {week}/18 📆"
+    msg += f"{passed}/{total} days passed ✅\n\n"
     
     if event:
         msg += f"\n\nToday: {event} 💡"

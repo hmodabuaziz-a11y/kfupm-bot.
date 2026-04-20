@@ -55,12 +55,12 @@ async def main():
     p, passed, total, remain, week, event = data
     bar = "▓" * int(p/5) + "░" * (20 - int(p/5))
     
-    # 💡 التعديل هنا: استخدام نظام القائمة لضمان الترتيب وعدم تداخل الأسطر
+    # 💡 التعديل هنا: إعادة ترتيب العناصر حسب طلبك بالضبط
     message_parts = [
         f"[{bar}]{p}%",
-        f"{passed}/{total} days passed ✅",
         f"{remain} days left ⏳",
-        f"Week {week}/18 📆"
+        f"Week {week}/18 📆",
+        f"{passed}/{total} days passed ✅"
     ]
     
     # إضافة حدث اليوم إن وُجد

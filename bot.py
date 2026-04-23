@@ -59,7 +59,7 @@ async def main():
     message_parts = [
         f"[{bar}]{p}%",
         f"{remain} days left ⏳",
-        f"Week {week}/18 📆",
+        f"Week {week}/17 📆",
         f"{passed}/{total} days passed ✅"
     ]
     

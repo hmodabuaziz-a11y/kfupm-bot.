@@ -68,7 +68,7 @@ async def main():
         message_parts.append(f"Today: {event} 💡")
         
     # إضافة الهاشتاق في النهاية
-    message_parts.append("#KFUPM-DCC")
+    message_parts.append("#KFUPM")
     
     # دمج القائمة مع وضع سطرين فارغين بين كل فقرة تلقائياً
     msg = "\n\n".join(message_parts)

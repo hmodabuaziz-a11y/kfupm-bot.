@@ -7,13 +7,13 @@ from telegram import Bot
 
 TOKEN      = os.getenv("TELEGRAM_TOKEN")
 MY_CHAT_ID = os.getenv("CHAT_ID")
-PDF_PATH   = "Calendar-252.pdf"
+PDF_PATH   = "Calendar-261.pdf"
 
-TERM_START    = datetime(2026, 1, 11).date()
-TERM_END      = datetime(2026, 5, 21).date()
-HOLIDAY_START = datetime(2026, 3, 15).date()
-HOLIDAY_END   = datetime(2026, 3, 26).date()
-TOTAL_WEEKS   = 17
+TERM_START    = datetime(2026, 8, 19).date()
+TERM_END      = datetime(2026, 12, 26).date()
+HOLIDAY_START = datetime(2026, 10, 20).date()   # Midterm Break
+HOLIDAY_END   = datetime(2026, 10, 22).date()   # Midterm Break
+TOTAL_WEEKS   = 19
 
 MONTH_MAP = {
     'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
@@ -37,11 +37,42 @@ def parse_dates(raw: str):
             dates.append(cur); cur += timedelta(days=1)
         return dates
 
+    # "Sept. 6, 2026-Sept. 17, 2026"
+    m = re.fullmatch(
+        r'([A-Za-z]+)\.?\s+(\d+),?\s+(\d{4})\s*-\s*([A-Za-z]+)\.?\s+(\d+),\s+(\d{4})', raw)
+    if m:
+        d1 = datetime(int(m.group(3)), MONTH_MAP[m.group(1)[:3]], int(m.group(2))).date()
+        d2 = datetime(int(m.group(6)), MONTH_MAP[m.group(4)[:3]], int(m.group(5))).date()
+        cur = d1
+        while cur <= d2:
+            dates.append(cur); cur += timedelta(days=1)
+        return dates
+
     # "Apr. 18 - Apr. 26"
     m = re.fullmatch(r'([A-Za-z]+)\.?\s+(\d+)\s*[-]\s*([A-Za-z]+)\.?\s+(\d+)', raw)
     if m:
         d1 = datetime(yr, MONTH_MAP[m.group(1)[:3]], int(m.group(2))).date()
         d2 = datetime(yr, MONTH_MAP[m.group(3)[:3]], int(m.group(4))).date()
+        cur = d1
+        while cur <= d2:
+            dates.append(cur); cur += timedelta(days=1)
+        return dates
+
+    # "Oct. 4, 2026 - Oct 15, 2026"
+    m = re.fullmatch(r'([A-Za-z]+)\.?\s+(\d+),\s+(\d{4})\s*-\s*([A-Za-z]+)\.?\s+(\d+),\s+(\d{4})', raw)
+    if m:
+        d1 = datetime(int(m.group(3)), MONTH_MAP[m.group(1)[:3]], int(m.group(2))).date()
+        d2 = datetime(int(m.group(6)), MONTH_MAP[m.group(4)[:3]], int(m.group(5))).date()
+        cur = d1
+        while cur <= d2:
+            dates.append(cur); cur += timedelta(days=1)
+        return dates
+
+    # "Oct. 20-22 2026"
+    m = re.fullmatch(r'([A-Za-z]+)\.?\s+(\d+)-(\d+)\s+(\d{4})', raw)
+    if m:
+        d1 = datetime(int(m.group(4)), MONTH_MAP[m.group(1)[:3]], int(m.group(2))).date()
+        d2 = datetime(int(m.group(4)), MONTH_MAP[m.group(1)[:3]], int(m.group(3))).date()
         cur = d1
         while cur <= d2:
             dates.append(cur); cur += timedelta(days=1)
@@ -67,18 +98,24 @@ def parse_dates(raw: str):
             dates.append(cur); cur += timedelta(days=1)
         return dates
 
-    # "May 11 - 20"
-    m = re.fullmatch(r'([A-Za-z]+)\s+(\d+)\s*[-]\s*(\d+)', raw)
+    # "Nov. 22, 2026 - Nov. 23, 2026"
+    m = re.fullmatch(r'([A-Za-z]+)\.?\s+(\d+),\s+(\d{4})\s*-\s*([A-Za-z]+)\.?\s+(\d+),\s+(\d{4})', raw)
     if m:
-        d1 = datetime(yr, MONTH_MAP[m.group(1)[:3]], int(m.group(2))).date()
-        d2 = datetime(yr, MONTH_MAP[m.group(1)[:3]], int(m.group(3))).date()
+        d1 = datetime(int(m.group(3)), MONTH_MAP[m.group(1)[:3]], int(m.group(2))).date()
+        d2 = datetime(int(m.group(6)), MONTH_MAP[m.group(4)[:3]], int(m.group(5))).date()
         cur = d1
         while cur <= d2:
             dates.append(cur); cur += timedelta(days=1)
         return dates
 
-    # "Jan. 11, 2026" or "Apr 30, 2026"
+    # "Aug. 19, 2026" single date with year
     m = re.fullmatch(r'([A-Za-z]+)\.?\s+(\d+),?\s+(\d{4})', raw)
+    if m:
+        dates.append(datetime(int(m.group(3)), MONTH_MAP[m.group(1)[:3]], int(m.group(2))).date())
+        return dates
+
+    # "Sept. 1, 2026" (period after month, comma after day)
+    m = re.fullmatch(r'([A-Za-z]+)\.?\s+(\d+),\s+(\d{4})', raw)
     if m:
         dates.append(datetime(int(m.group(3)), MONTH_MAP[m.group(1)[:3]], int(m.group(2))).date())
         return dates
@@ -94,7 +131,6 @@ def build_calendar_from_pdf():
             if not table:
                 continue
             for row in table:
-                # 5 columns: [DAY, WEEK, HIJRI, GREGORIAN_DATE, EVENT]
                 if not row or len(row) < 5:
                     continue
                 raw_date = str(row[3] or '').replace('\n', ' ').strip()
@@ -116,6 +152,7 @@ def get_kfupm_data():
     remaining       = (TERM_END - today).days
     percentage      = min(100, int(((days_passed + 1) / total_term_days) * 100))
 
+    # حساب الأسبوع مع مراعاة إجازة منتصف الترم
     if today <= HOLIDAY_END:
         week_num = (days_passed // 7) + 1
     else:

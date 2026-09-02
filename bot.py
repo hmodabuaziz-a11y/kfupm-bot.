@@ -26,7 +26,6 @@ def parse_dates(raw: str):
     dates = []
     yr = 2026
 
-    # "Jan. 25, 2026 - Feb. 5, 2026"
     m = re.fullmatch(
         r'([A-Za-z]+)\.?\s+(\d+),?\s+(\d{4})\s*[-]\s*([A-Za-z]+)\.?\s+(\d+),?\s+(\d{4})', raw)
     if m:
@@ -37,7 +36,6 @@ def parse_dates(raw: str):
             dates.append(cur); cur += timedelta(days=1)
         return dates
 
-    # "Sept. 6, 2026-Sept. 17, 2026"
     m = re.fullmatch(
         r'([A-Za-z]+)\.?\s+(\d+),?\s+(\d{4})\s*-\s*([A-Za-z]+)\.?\s+(\d+),\s+(\d{4})', raw)
     if m:
@@ -48,7 +46,6 @@ def parse_dates(raw: str):
             dates.append(cur); cur += timedelta(days=1)
         return dates
 
-    # "Apr. 18 - Apr. 26"
     m = re.fullmatch(r'([A-Za-z]+)\.?\s+(\d+)\s*[-]\s*([A-Za-z]+)\.?\s+(\d+)', raw)
     if m:
         d1 = datetime(yr, MONTH_MAP[m.group(1)[:3]], int(m.group(2))).date()
@@ -58,7 +55,6 @@ def parse_dates(raw: str):
             dates.append(cur); cur += timedelta(days=1)
         return dates
 
-    # "Oct. 4, 2026 - Oct 15, 2026"
     m = re.fullmatch(r'([A-Za-z]+)\.?\s+(\d+),\s+(\d{4})\s*-\s*([A-Za-z]+)\.?\s+(\d+),\s+(\d{4})', raw)
     if m:
         d1 = datetime(int(m.group(3)), MONTH_MAP[m.group(1)[:3]], int(m.group(2))).date()
@@ -68,7 +64,6 @@ def parse_dates(raw: str):
             dates.append(cur); cur += timedelta(days=1)
         return dates
 
-    # "Oct. 20-22 2026"
     m = re.fullmatch(r'([A-Za-z]+)\.?\s+(\d+)-(\d+)\s+(\d{4})', raw)
     if m:
         d1 = datetime(int(m.group(4)), MONTH_MAP[m.group(1)[:3]], int(m.group(2))).date()
@@ -78,7 +73,6 @@ def parse_dates(raw: str):
             dates.append(cur); cur += timedelta(days=1)
         return dates
 
-    # "Mar. 1-12, 2026"
     m = re.fullmatch(r'([A-Za-z]+)\.?\s+(\d+)-(\d+),?\s+(\d{4})', raw)
     if m:
         d1 = datetime(int(m.group(4)), MONTH_MAP[m.group(1)[:3]], int(m.group(2))).date()
@@ -88,7 +82,6 @@ def parse_dates(raw: str):
             dates.append(cur); cur += timedelta(days=1)
         return dates
 
-    # "Mar. 15 - 26"
     m = re.fullmatch(r'([A-Za-z]+)\.?\s+(\d+)\s*[-]\s*(\d+)', raw)
     if m:
         d1 = datetime(yr, MONTH_MAP[m.group(1)[:3]], int(m.group(2))).date()
@@ -98,29 +91,29 @@ def parse_dates(raw: str):
             dates.append(cur); cur += timedelta(days=1)
         return dates
 
-    # "Nov. 22, 2026 - Nov. 23, 2026"
-    m = re.fullmatch(r'([A-Za-z]+)\.?\s+(\d+),\s+(\d{4})\s*-\s*([A-Za-z]+)\.?\s+(\d+),\s+(\d{4})', raw)
-    if m:
-        d1 = datetime(int(m.group(3)), MONTH_MAP[m.group(1)[:3]], int(m.group(2))).date()
-        d2 = datetime(int(m.group(6)), MONTH_MAP[m.group(4)[:3]], int(m.group(5))).date()
-        cur = d1
-        while cur <= d2:
-            dates.append(cur); cur += timedelta(days=1)
-        return dates
-
-    # "Aug. 19, 2026" single date with year
     m = re.fullmatch(r'([A-Za-z]+)\.?\s+(\d+),?\s+(\d{4})', raw)
     if m:
         dates.append(datetime(int(m.group(3)), MONTH_MAP[m.group(1)[:3]], int(m.group(2))).date())
         return dates
 
-    # "Sept. 1, 2026" (period after month, comma after day)
-    m = re.fullmatch(r'([A-Za-z]+)\.?\s+(\d+),\s+(\d{4})', raw)
-    if m:
-        dates.append(datetime(int(m.group(3)), MONTH_MAP[m.group(1)[:3]], int(m.group(2))).date())
-        return dates
-
     return dates
+
+
+def calc_week(today):
+    """حساب رقم الأسبوع بحيث كل أسبوع يبدأ من يوم الأربعاء"""
+    def week_index(d):
+        # كم أسبوع مرّ من بداية الترم، مع اعتبار الأربعاء بداية الأسبوع
+        return (d - TERM_START).days // 7
+
+    if today <= HOLIDAY_END:
+        return week_index(today) + 1
+    else:
+        # أسابيع قبل الإجازة
+        pre_weeks  = week_index(HOLIDAY_START)
+        # أسابيع بعد الإجازة (نحسب من أول أربعاء بعد نهاية الإجازة)
+        days_after = (today - HOLIDAY_END).days
+        post_weeks = days_after // 7
+        return pre_weeks + post_weeks + 1
 
 
 def build_calendar_from_pdf():
@@ -152,14 +145,7 @@ def get_kfupm_data():
     remaining       = (TERM_END - today).days
     percentage      = min(100, int(((days_passed + 1) / total_term_days) * 100))
 
-    # حساب الأسبوع مع مراعاة إجازة منتصف الترم
-    if today <= HOLIDAY_END:
-        week_num = (days_passed // 7) + 1
-    else:
-        pre      = (HOLIDAY_START - TERM_START).days
-        post     = (today - HOLIDAY_END).days - 1
-        week_num = (pre // 7) + (post // 7) + 1
-    week_num = max(1, min(week_num, TOTAL_WEEKS))
+    week_num = max(1, min(calc_week(today), TOTAL_WEEKS))
 
     date_events  = build_calendar_from_pdf()
     today_events = date_events.get(today, [])

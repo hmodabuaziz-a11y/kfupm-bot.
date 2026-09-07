@@ -10,15 +10,46 @@ MY_CHAT_ID = os.getenv("CHAT_ID")
 PDF_PATH   = "Calendar-261.pdf"
 
 TERM_START    = datetime(2026, 8, 19).date()
-TERM_END      = datetime(2026, 12, 26).date()
-HOLIDAY_START = datetime(2026, 10, 20).date()   # Midterm Break
-HOLIDAY_END   = datetime(2026, 10, 22).date()   # Midterm Break
-TOTAL_WEEKS   = 19
+TERM_END      = datetime(2026, 12, 24).date()
+HOLIDAY_START = datetime(2026, 10, 20).date()
+HOLIDAY_END   = datetime(2026, 10, 24).date()
+AUTUMN_START  = datetime(2026, 11, 22).date()
+AUTUMN_END    = datetime(2026, 11, 23).date()
+TOTAL_WEEKS   = 15
+
+# جدول الأسابيع مباشرة من البلانر
+WEEK_SCHEDULE = [
+    (1,  datetime(2026,  8, 16).date(), datetime(2026,  8, 22).date()),
+    (2,  datetime(2026,  8, 23).date(), datetime(2026,  8, 29).date()),
+    (3,  datetime(2026,  8, 30).date(), datetime(2026,  9,  5).date()),
+    (4,  datetime(2026,  9,  6).date(), datetime(2026,  9, 12).date()),
+    (5,  datetime(2026,  9, 13).date(), datetime(2026,  9, 19).date()),
+    (6,  datetime(2026,  9, 20).date(), datetime(2026,  9, 26).date()),
+    (7,  datetime(2026,  9, 27).date(), datetime(2026, 10,  3).date()),
+    (8,  datetime(2026, 10,  4).date(), datetime(2026, 10, 10).date()),
+    (9,  datetime(2026, 10, 11).date(), datetime(2026, 10, 17).date()),
+    (10, datetime(2026, 10, 18).date(), datetime(2026, 10, 31).date()),  # إجازة + استئناف
+    (11, datetime(2026, 11,  1).date(), datetime(2026, 11,  7).date()),
+    (12, datetime(2026, 11,  8).date(), datetime(2026, 11, 14).date()),
+    (13, datetime(2026, 11, 15).date(), datetime(2026, 11, 21).date()),
+    (14, datetime(2026, 11, 22).date(), datetime(2026, 12,  5).date()),  # إجازة خريف + استئناف
+    (15, datetime(2026, 12,  6).date(), datetime(2026, 12, 12).date()),
+]
 
 MONTH_MAP = {
     'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
     'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
 }
+
+
+def get_week_num(today):
+    for week, start, end in WEEK_SCHEDULE:
+        if start <= today <= end:
+            return week
+    # أسابيع الامتحانات
+    if datetime(2026, 12, 13).date() <= today <= datetime(2026, 12, 24).date():
+        return "Final"
+    return "-"
 
 
 def parse_dates(raw: str):
@@ -99,23 +130,6 @@ def parse_dates(raw: str):
     return dates
 
 
-def calc_week(today):
-    """حساب رقم الأسبوع بحيث كل أسبوع يبدأ من يوم الأربعاء"""
-    def week_index(d):
-        # كم أسبوع مرّ من بداية الترم، مع اعتبار الأربعاء بداية الأسبوع
-        return (d - TERM_START).days // 7
-
-    if today <= HOLIDAY_END:
-        return week_index(today) + 1
-    else:
-        # أسابيع قبل الإجازة
-        pre_weeks  = week_index(HOLIDAY_START)
-        # أسابيع بعد الإجازة (نحسب من أول أربعاء بعد نهاية الإجازة)
-        days_after = (today - HOLIDAY_END).days
-        post_weeks = days_after // 7
-        return pre_weeks + post_weeks + 1
-
-
 def build_calendar_from_pdf():
     date_events = {}
     with pdfplumber.open(PDF_PATH) as pdf:
@@ -145,7 +159,7 @@ def get_kfupm_data():
     remaining       = (TERM_END - today).days
     percentage      = min(100, int(((days_passed + 1) / total_term_days) * 100))
 
-    week_num = max(1, min(calc_week(today), TOTAL_WEEKS))
+    week_num = get_week_num(today)
 
     date_events  = build_calendar_from_pdf()
     today_events = date_events.get(today, [])
@@ -171,10 +185,12 @@ async def main():
     p, passed, total, remain, week, event, reminder = data
     bar = "▓" * int(p / 5) + "░" * (20 - int(p / 5))
 
+    week_display = f"Week {week}/{TOTAL_WEEKS}" if isinstance(week, int) else "🎓 Final Examinations"
+
     message_parts = [
         f"[{bar}] {p}%",
         f"{remain} days left ⏳",
-        f"Week {week}/{TOTAL_WEEKS} 📆",
+        f"{week_display} 📆",
         f"{passed}/{total} days passed ✅",
     ]
 
@@ -192,4 +208,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
